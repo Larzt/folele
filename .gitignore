@@ -1,0 +1,8 @@
+# Compilación (make)
+core/build/
+*.o
+*.d
+*.a
+*.elf
+*.hex
+*.exe
