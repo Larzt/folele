@@ -7,8 +7,9 @@
 enum Velocoties
 {
   STOP = 90,
-  MID = 135,
+  MID = 100,
   MAX = 180,
+  MIN = -180,
 };
 
 class Motor
@@ -26,6 +27,7 @@ public:
   void Stop() { SetVelocity(Velocoties::STOP); }
   void Mid() { SetVelocity(Velocoties::MID); }
   void Max() { SetVelocity(Velocoties::MAX); }
+  void Min() { SetVelocity(Velocoties::MIN); }
 
   ~Motor() = default;
 

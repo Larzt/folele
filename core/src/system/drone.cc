@@ -81,18 +81,34 @@ void Drone::SetMotorsVelocity(const int dx, const int dy)
   Logger::Log(LoggerTag::Joy, "DX: ", dx, "DY: ", dy);
   if (dx == 0 && dy == 0)
   {
-    motorAlpha_.Stop();
-    motorBeta_.Stop();
+    motorAlpha_.Mid();
+    motorBeta_.Mid();
     return;
   }
 
   if (dx != 0)
   {
-    motorAlpha_.IncreaseVelocity(dx);
+    if (dx < 0)
+    {
+      motorAlpha_.DecreaseVelocity(dx);
+    }
+    else
+    {
+      motorAlpha_.IncreaseVelocity(dx);
+    }
   }
+
   if (dy != 0)
   {
-    motorBeta_.IncreaseVelocity(dy);
+    if (dy < 0)
+    {
+
+      motorBeta_.DecreaseVelocity(dy);
+    }
+    else
+    {
+      motorBeta_.IncreaseVelocity(dy);
+    }
   }
 }
 

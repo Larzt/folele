@@ -5,7 +5,6 @@ rwildcard = $(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(
 MCU         := atmega328p
 F_CPU       := 16000000L
 VARIANT     ?= standard
-PORT        ?= COM3
 # Nano con bootloader antiguo: make upload BAUD=57600
 BAUD        ?= 115200
 SERIAL_BAUD ?= 115200
@@ -15,20 +14,6 @@ LIBS        ?= Wire EEPROM Servo
 
 TARGET   := main
 BUILD    := build
-
-ifneq ($(wildcard /proc/sys/fs/binfmt_misc/WSLInterop),)
-# En WSL el toolchain instalado es el de Windows (y solo Windows ve los COMx),
-# así que se reenvía todo al make de Windows: `make upload PORT=COM5` funciona igual
-GOALS := $(or $(MAKECMDGOALS),all)
-
-.PHONY: $(GOALS)
-$(firstword $(GOALS)):
-	@cmd.exe /c "cd /d $(shell wslpath -w .) && make $(GOALS) $(MAKEOVERRIDES)"
-
-$(wordlist 2,$(words $(GOALS)),$(GOALS)):
-	@:
-
-else
 
 # Toolchain y core AVR instalados con `arduino-cli core install arduino:avr`
 # (ruta: `arduino-cli config get directories.data`)
@@ -40,12 +25,14 @@ ifeq ($(OS),Windows_NT)
   EXE    := .exe
   ARDUINO_DATA ?= C:/dev/arduino/data
   ARDUINO_USER ?= C:/dev/arduino/sketches
+  PORT         ?= COM3
 else
   native  = $1
   MKDIR   = mkdir -p $1
   RMDIR   = rm -rf $1
   ARDUINO_DATA ?= $(HOME)/.arduino15
   ARDUINO_USER ?= $(HOME)/Arduino
+  PORT         ?= /dev/ttyACM0
 endif
 
 PKG          := $(ARDUINO_DATA)/packages/arduino
@@ -173,6 +160,4 @@ info:
 
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEPS)
-endif
-
 endif
