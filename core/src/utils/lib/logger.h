@@ -6,6 +6,8 @@ enum LoggerTag
 {
   None,
   Calibration,
+  Joy,
+  Mot,
 };
 
 class Logger
@@ -42,6 +44,10 @@ private:
       return "System";
     case LoggerTag::Calibration:
       return "Calibration";
+    case LoggerTag::Joy:
+      return "Joystick";
+    case LoggerTag::Mot:
+      return "Motor";
     }
     return "Unknown";
   }

@@ -9,8 +9,9 @@ PORT        ?= COM3
 # Nano con bootloader antiguo: make upload BAUD=57600
 BAUD        ?= 115200
 SERIAL_BAUD ?= 115200
-# Librerías del core AVR que se usan (las de hardware/avr/*/libraries)
-LIBS        ?= Wire EEPROM
+# Librerías que se usan: se buscan en las del core AVR (hardware/avr/*/libraries)
+# y en las instaladas con `arduino-cli lib install` (directories.user/libraries)
+LIBS        ?= Wire EEPROM Servo
 
 TARGET   := main
 BUILD    := build
@@ -38,11 +39,13 @@ ifeq ($(OS),Windows_NT)
   RMDIR   = if exist "$1" rmdir /s /q "$1"
   EXE    := .exe
   ARDUINO_DATA ?= C:/dev/arduino/data
+  ARDUINO_USER ?= C:/dev/arduino/sketches
 else
   native  = $1
   MKDIR   = mkdir -p $1
   RMDIR   = rm -rf $1
   ARDUINO_DATA ?= $(HOME)/.arduino15
+  ARDUINO_USER ?= $(HOME)/Arduino
 endif
 
 PKG          := $(ARDUINO_DATA)/packages/arduino
@@ -65,7 +68,14 @@ AVRDUDE := $(call tool,$(AVRDUDE_DIR)/bin/avrdude)
 CORE_DIR    := $(CORE_ROOT)/cores/arduino
 VARIANT_DIR := $(CORE_ROOT)/variants/$(VARIANT)
 LIBS_DIR    := $(CORE_ROOT)/libraries
-LIB_SRC_DIRS := $(addprefix $(LIBS_DIR)/,$(addsuffix /src,$(LIBS)))
+USER_LIBS_DIR := $(ARDUINO_USER)/libraries
+# Para cada librería se usa la del core si existe; si no, la de usuario
+LIB_SRC_DIRS := $(foreach l,$(LIBS),$(firstword $(wildcard $(LIBS_DIR)/$l/src $(USER_LIBS_DIR)/$l/src)))
+MISSING_LIBS := $(strip $(foreach l,$(LIBS),$(if $(filter %/$l/src,$(LIB_SRC_DIRS)),,$l)))
+
+ifneq ($(MISSING_LIBS),)
+  $(error No se encuentran las librerías: $(MISSING_LIBS). Instalalas con: arduino-cli lib install <nombre>)
+endif
 
 MCUFLAGS := -mmcu=$(MCU) -DF_CPU=$(F_CPU) -DARDUINO=10607 -DARDUINO_AVR_UNO -DARDUINO_ARCH_AVR
 OPTFLAGS := -Os -g -flto -ffunction-sections -fdata-sections
@@ -90,7 +100,8 @@ DEPS     := $(OBJS:.o=.d)
 CORE_SRCS := $(filter-out $(CORE_DIR)/main.cpp,$(wildcard $(CORE_DIR)/*.c $(CORE_DIR)/*.cpp $(CORE_DIR)/*.S))
 CORE_OBJS := $(patsubst $(CORE_DIR)/%,$(BUILD)/core/%.o,$(CORE_SRCS))
 LIBS_SRCS := $(foreach d,$(LIB_SRC_DIRS),$(call rwildcard,$d,*.c) $(call rwildcard,$d,*.cpp))
-LIBS_OBJS := $(patsubst $(LIBS_DIR)/%,$(BUILD)/libs/%.o,$(LIBS_SRCS))
+LIBS_OBJS := $(patsubst $(LIBS_DIR)/%,$(BUILD)/libs/%.o,$(filter $(LIBS_DIR)/%,$(LIBS_SRCS))) \
+             $(patsubst $(USER_LIBS_DIR)/%,$(BUILD)/userlibs/%.o,$(filter $(USER_LIBS_DIR)/%,$(LIBS_SRCS)))
 CORE_LIB  := $(BUILD)/core.a
 
 ELF := $(BUILD)/$(TARGET).elf
@@ -131,6 +142,14 @@ $(BUILD)/libs/%.c.o: $(LIBS_DIR)/%.c
 	$(CC) $(LIB_CFLAGS) $(LIB_INCLUDES) -c $< -o $@
 
 $(BUILD)/libs/%.cpp.o: $(LIBS_DIR)/%.cpp
+	@$(call MKDIR,$(dir $@))
+	$(CXX) $(LIB_CXXFLAGS) $(LIB_INCLUDES) -c $< -o $@
+
+$(BUILD)/userlibs/%.c.o: $(USER_LIBS_DIR)/%.c
+	@$(call MKDIR,$(dir $@))
+	$(CC) $(LIB_CFLAGS) $(LIB_INCLUDES) -c $< -o $@
+
+$(BUILD)/userlibs/%.cpp.o: $(USER_LIBS_DIR)/%.cpp
 	@$(call MKDIR,$(dir $@))
 	$(CXX) $(LIB_CXXFLAGS) $(LIB_INCLUDES) -c $< -o $@
 
