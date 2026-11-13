@@ -168,15 +168,15 @@ El modo AP hace de **respaldo**: el dron siempre queda accesible, aunque se llev
 
 ```mermaid
 stateDiagram-v2
-    [*] --> LeerNVS: Network::Connect()
+    [*] --> LeerNVS: Connect()
     LeerNVS --> STA: hay credenciales
     LeerNVS --> AP: no hay credenciales
     STA --> Conectado: IP_EVENT_STA_GOT_IP
     STA --> Reintento: WIFI_EVENT_STA_DISCONNECTED
-    Reintento --> STA: intentos < 5
+    Reintento --> STA: menos de 5 intentos
     Reintento --> AP: 5 intentos fallidos
     Conectado --> Reintento: se pierde la conexión
-    AP --> STA: POST /wifi (guarda credenciales y Reconnect())
+    AP --> STA: POST /wifi guarda credenciales y reconecta
 ```
 
 ### 5.2 Cómo se implementa
