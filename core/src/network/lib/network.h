@@ -21,6 +21,7 @@ public:
   ~Network() = default;
 
   void Connect();
+  // Switches to STA with the saved credentials (falls back to AP if it fails)
   void Reconnect();
   void StartAccessPoint();
   static bool LoadNetCredentials(std::string &ssid, std::string &pass);
@@ -35,5 +36,6 @@ private:
   static inline int currentStationRetries_ = 0;
 
   esp_netif_t *apNetif_ = nullptr;
+  esp_netif_t *staNetif_ = nullptr;
   static void EventHandler(void *arg, esp_event_base_t eventBase, int32_t eventId, void *eventData);
 };

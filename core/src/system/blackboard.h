@@ -99,3 +99,11 @@ constexpr int PowerMaxFreqMhz = 240;
 constexpr int PowerMinFreqMhz = 80;
 // While idle the main loop wakes up this often (must be < WatchdogTimeoutMs)
 constexpr uint32_t IdleLoopPeriodMs = 1000;
+// Light sleep stats are printed this often while idle (needs CONFIG_PM_PROFILING)
+constexpr uint32_t PowerStatsPeriodMs = 10000;
+
+// Wake button: BOOT button of the DevKit (active low, external pull-up).
+// Wakes the chip from light sleep and toggles Idle <-> Flying.
+// Do not hold it while resetting: GPIO0 low at boot enters download mode.
+constexpr gpio_num_t WakeButtonPin = GPIO_NUM_0;
+constexpr uint32_t ButtonDebounceMs = 50;

@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <string>
 
 #include <esp_pm.h>
 #include <freertos/FreeRTOS.h>
@@ -19,6 +20,14 @@
  * Arm()/Disarm() can be called from any task (e.g. the HTTP server).
  * The motors are only driven from the main loop.
  */
+// Time spent in light sleep (from the esp_pm profiling, since boot)
+struct PowerStats
+{
+  int64_t uptimeUs = 0;
+  int64_t sleepUs = 0;
+  uint32_t sleepCount = 0;
+};
+
 class PowerManager
 {
 public:
@@ -36,12 +45,20 @@ public:
   // While blocked the chip can enter light sleep.
   static bool WaitUntilArmed(uint32_t timeoutMs);
 
+  // Light sleep statistics. Returns false if profiling is disabled.
+  static bool GetStats(PowerStats &stats);
+  // Raw esp_pm report (locks + time per mode)
+  static std::string Report();
+  // Logs the % of time in light sleep since the previous call
+  static void LogStats();
+
 private:
   static constexpr EventBits_t ArmedBit = BIT0;
 
   static inline std::atomic<PowerState> state_{PowerState::Idle};
   static inline esp_pm_lock_handle_t noSleepLock_ = nullptr;
   static inline EventGroupHandle_t events_ = nullptr;
+  static inline PowerStats lastStats_;
 
   PowerManager() = default;
   ~PowerManager() = default;

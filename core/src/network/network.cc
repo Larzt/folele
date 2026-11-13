@@ -41,7 +41,7 @@ void Network::Connect()
     strlcpy((char *)staConfig.sta.ssid, ssid.c_str(), sizeof(staConfig.sta.ssid));
     strlcpy((char *)staConfig.sta.password, password.c_str(), sizeof(staConfig.sta.password));
 
-    esp_netif_create_default_wifi_sta();
+    staNetif_ = esp_netif_create_default_wifi_sta();
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &staConfig));
@@ -161,6 +161,12 @@ void Network::Reconnect()
   wifi_config_t staConfig = {};
   strlcpy((char *)staConfig.sta.ssid, ssid.c_str(), sizeof(staConfig.sta.ssid));
   strlcpy((char *)staConfig.sta.password, pass.c_str(), sizeof(staConfig.sta.password));
+
+  // If the drone booted as an AP the STA interface does not exist yet
+  if (staNetif_ == nullptr)
+  {
+    staNetif_ = esp_netif_create_default_wifi_sta();
+  }
 
   esp_wifi_stop();
   esp_wifi_set_mode(WIFI_MODE_STA);

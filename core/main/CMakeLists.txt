@@ -12,5 +12,5 @@ idf_component_register(
     "../src/network/lib"
     "../src/handlers/lib"
   REQUIRES esp_driver_gpio esp_driver_i2c esp_driver_ledc esp_adc nvs_flash
-           esp_wifi esp_netif esp_event esp_http_server esp_pm
+           esp_wifi esp_netif esp_event esp_http_server esp_pm esp_timer
 )

@@ -1,5 +1,6 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <esp_timer.h>
 
 #include "blackboard.h"
 #include "drone.h"
@@ -9,18 +10,20 @@
 #include "power_manager.h"
 #include "server.h"
 #include "vector.h"
+#include "wake_button.h"
 #include "watchdog.h"
 
 Drone drone;
 Joystick joystick;
 Vector2 JoyInput;
 Network network;
-Server server;
+Server server(network);
 
 extern "C" void app_main()
 {
   Watchdog::Begin();
   PowerManager::Begin();
+  WakeButton::Begin();
   drone.Begin();
   joystick.Begin();
 
@@ -31,6 +34,7 @@ extern "C" void app_main()
   Logger::Log(LoggerTag::None, "System ready");
 
   PowerState lastState = PowerState::Idle;
+  int64_t lastStatsUs = esp_timer_get_time();
 
   while (true)
   {
@@ -45,6 +49,12 @@ extern "C" void app_main()
 
       PowerManager::WaitUntilArmed(IdleLoopPeriodMs);
       Watchdog::Reset();
+
+      if (esp_timer_get_time() - lastStatsUs >= PowerStatsPeriodMs * 1000LL)
+      {
+        PowerManager::LogStats();
+        lastStatsUs = esp_timer_get_time();
+      }
       continue;
     }
 

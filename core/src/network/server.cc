@@ -2,6 +2,8 @@
 
 #include "ping.h"
 #include "power.h"
+#include "root.h"
+#include "wifi.h"
 
 Server::~Server()
 {
@@ -58,12 +60,11 @@ void Server::ResetHandlers()
 
 void Server::LoadHandlers()
 {
+  this->AddHandler(new Root());
   this->AddHandler(new Ping());
   this->AddHandler(new Power());
-  if (CurrentServerMode.Get() == ServerMode::Developer)
-  {
-    // Handlers only available in developer mode
-  }
+  // Always available: folele has no button to go back to developer mode
+  this->AddHandler(new Wifi(network_));
 }
 
 void Server::RegisterHandlers()

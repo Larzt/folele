@@ -6,6 +6,7 @@
 #include "blackboard.h"
 #include "handler.h"
 #include "logger.h"
+#include "network.h"
 
 /**
  * HTTP server: every route lives in a Handler (see src/handlers).
@@ -14,7 +15,7 @@
 class Server
 {
 public:
-  Server() = default;
+  explicit Server(Network &network) : network_(network) {}
   ~Server();
 
   httpd_handle_t Start();
@@ -23,6 +24,7 @@ public:
   void ResetHandlers();
 
 private:
+  Network &network_;
   httpd_handle_t server_ = nullptr;
   std::vector<Handler *> handlers_;
 

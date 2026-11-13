@@ -11,3 +11,5 @@ CONFIG_ESP_CONSOLE_UART_BAUDRATE=115200
 # Power management: dynamic frequency scaling + automatic light sleep
 CONFIG_PM_ENABLE=y
 CONFIG_FREERTOS_USE_TICKLESS_IDLE=y
+# Time spent in each power mode (shown in the log, /status and /power/stats)
+CONFIG_PM_PROFILING=y

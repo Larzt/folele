@@ -22,7 +22,13 @@ Power::Power()
       .handler = &Power::HandleState,
       .user_ctx = this};
 
-  uris_ = {&armUri_, &disarmUri_, &stateUri_};
+  statsUri_ = {
+      .uri = "/power/stats",
+      .method = HTTP_GET,
+      .handler = &Power::HandleStats,
+      .user_ctx = this};
+
+  uris_ = {&armUri_, &disarmUri_, &stateUri_, &statsUri_};
 }
 
 const std::vector<httpd_uri_t *> &Power::Uris() const
@@ -45,6 +51,13 @@ esp_err_t Power::HandleDisarm(httpd_req_t *req)
 esp_err_t Power::HandleState(httpd_req_t *req)
 {
   return SendState(req);
+}
+
+esp_err_t Power::HandleStats(httpd_req_t *req)
+{
+  std::string report = PowerManager::Report();
+  httpd_resp_set_type(req, "text/plain");
+  return httpd_resp_send(req, report.c_str(), report.length());
 }
 
 esp_err_t Power::SendState(httpd_req_t *req)
