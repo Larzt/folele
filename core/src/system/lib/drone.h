@@ -1,7 +1,8 @@
 #pragma once
-#include <Wire.h>
-#include <EEPROM.h>
+#include <driver/i2c_master.h>
+#include <nvs.h>
 
+#include "blackboard.h"
 #include "motor.h"
 #include "logger.h"
 #include "vector.h"
@@ -18,26 +19,11 @@ struct CalibrationData
   long ax, ay, az, gx, gy, gz;
 };
 
-// Motors
-const int AlphaMotorPin = 3;
-const int BetaMotorPin = 9;
-
-// IMU
-const int MPU_ADDR = 0x68;
-const int ACC_ADDR = 0x3B;
-const int GYR_ADDR = 0x43;
-const int PWR_MGMT_1 = 0x6B;
-
-// EEPROM
-const byte MAGIC = 0xA5;
-const int ADDR_MAGIC = 0;
-const int ADDR_DATA = 1;
-
 class Drone
 {
 public:
   Drone() = default;
-  // Llamar desde main() después de init(): no se puede usar Wire/Servo antes
+  // Call from app_main(): I2C, NVS and PWM are not ready before
   void Begin();
   ~Drone() = default;
 
@@ -50,8 +36,12 @@ public:
 
   // Motors
   void SetMotorsVelocity(const int dx, const int dy);
+  void StopMotors();
 
 private:
+  void InitStorage();
+  void InitImu();
+
   Motor motorAlpha_;
   Motor motorBeta_;
 
@@ -60,4 +50,7 @@ private:
 
   CalibrationData data_;
   IMU calibration_;
+  nvs_handle_t storage_ = 0;
+  i2c_master_bus_handle_t i2cBus_ = nullptr;
+  i2c_master_dev_handle_t imu_ = nullptr;
 };

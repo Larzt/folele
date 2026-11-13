@@ -1,8 +1,6 @@
 #pragma once
 
-#include <Printable.h>
-
-class Vector3 : public Printable
+class Vector3
 {
 public:
   Vector3();
@@ -16,9 +14,7 @@ public:
   inline long y() const { return y_; }
   inline long z() const { return z_; }
 
-  bool operator!=(const Vector3 v);
-  // Permite hacer Serial.print(v) y Logger::Log(..., v)
-  size_t printTo(Print &out) const override;
+  bool operator!=(const Vector3 &v) const;
   ~Vector3() = default;
 
 private:
@@ -27,7 +23,7 @@ private:
   long z_;
 };
 
-class Vector2 : public Printable
+class Vector2
 {
 public:
   Vector2();
@@ -39,9 +35,7 @@ public:
   inline long x() const { return x_; }
   inline long y() const { return y_; }
 
-  bool operator!=(const Vector2 v);
-  // Permite hacer Serial.print(v) y Logger::Log(..., v)
-  size_t printTo(Print &out) const override;
+  bool operator!=(const Vector2 &v) const;
   ~Vector2() = default;
 
 private:

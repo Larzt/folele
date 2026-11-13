@@ -1,16 +1,15 @@
 #pragma once
 #include <functional>
-#include <vector>
 
 class Subscription
 {
-
 public:
   Subscription() = default;
-  ~Subscription(std::function<void()> unsubscribe)
+
+  Subscription(std::function<void()> unsubscribe)
       : unsubscribe_(unsubscribe) {}
 
-  void unsubscribe()
+  void Unsubscribe()
   {
     if (unsubscribe_)
     {
@@ -20,5 +19,5 @@ public:
   }
 
 private:
-  std::function<void()> unsuscribe_;
+  std::function<void()> unsubscribe_;
 };

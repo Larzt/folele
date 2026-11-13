@@ -1,12 +1,8 @@
 #pragma once
-#include <Arduino.h>
+#include <esp_adc/adc_oneshot.h>
 
+#include "blackboard.h"
 #include "vector.h"
-
-const uint8_t XAxisPin = A0;
-const uint8_t YAxisPin = A1;
-// Lectura del ADC (0-1023) con el joystick en reposo
-const int JoyCenter = 512;
 
 class Joystick
 {
@@ -18,4 +14,7 @@ public:
   ~Joystick() = default;
 
 private:
+  adc_oneshot_unit_handle_t adc_ = nullptr;
+  adc_channel_t xChannel_;
+  adc_channel_t yChannel_;
 };

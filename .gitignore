@@ -1,8 +1,6 @@
-# Compilación (make)
+# ESP-IDF build
 core/build/
-*.o
-*.d
-*.a
-*.elf
-*.hex
-*.exe
+core/sdkconfig
+core/sdkconfig.old
+core/managed_components/
+core/dependencies.lock

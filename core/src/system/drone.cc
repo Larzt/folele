@@ -1,13 +1,12 @@
 #include "drone.h"
 
+#include <esp_err.h>
+#include <nvs_flash.h>
+
 void Drone::Begin()
 {
-  Wire.begin();
-
-  Wire.beginTransmission(MPU_ADDR);
-  Wire.write(PWR_MGMT_1);
-  Wire.write(0);
-  Wire.endTransmission();
+  this->InitStorage();
+  this->InitImu();
 
   if (!this->HasCalibration())
   {
@@ -19,9 +18,46 @@ void Drone::Begin()
     this->LoadCalibration();
   }
 
-  this->motorAlpha_.Init(AlphaMotorPin);
-  this->motorBeta_.Init(BetaMotorPin);
-  wdt_reset();
+  this->motorAlpha_.Init(AlphaMotorPin, AlphaMotorChannel);
+  this->motorBeta_.Init(BetaMotorPin, BetaMotorChannel);
+  Watchdog::Reset();
+}
+
+void Drone::InitStorage()
+{
+  esp_err_t err = nvs_flash_init();
+  if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
+  {
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    err = nvs_flash_init();
+  }
+  ESP_ERROR_CHECK(err);
+  ESP_ERROR_CHECK(nvs_open(NVS_NAMESPACE, NVS_READWRITE, &storage_));
+}
+
+void Drone::InitImu()
+{
+  i2c_master_bus_config_t busConfig = {};
+  busConfig.i2c_port = I2C_NUM_0;
+  busConfig.sda_io_num = SdaPin;
+  busConfig.scl_io_num = SclPin;
+  busConfig.clk_source = I2C_CLK_SRC_DEFAULT;
+  busConfig.glitch_ignore_cnt = 7;
+  busConfig.flags.enable_internal_pullup = true;
+  ESP_ERROR_CHECK(i2c_new_master_bus(&busConfig, &i2cBus_));
+
+  i2c_device_config_t deviceConfig = {};
+  deviceConfig.dev_addr_length = I2C_ADDR_BIT_LEN_7;
+  deviceConfig.device_address = MPU_ADDR;
+  deviceConfig.scl_speed_hz = I2cFrequencyHz;
+  ESP_ERROR_CHECK(i2c_master_bus_add_device(i2cBus_, &deviceConfig, &imu_));
+
+  // Wake the MPU-6050 up (it boots in sleep mode)
+  const uint8_t wake[] = {PWR_MGMT_1, 0};
+  if (i2c_master_transmit(imu_, wake, sizeof(wake), I2cTimeoutMs) != ESP_OK)
+  {
+    Logger::Log(LoggerTag::Calibration, "IMU not responding");
+  }
 }
 
 void Drone::Calibrate()
@@ -32,7 +68,8 @@ void Drone::Calibrate()
 
 bool Drone::HasCalibration()
 {
-  return (EEPROM.read(ADDR_MAGIC) == MAGIC);
+  uint8_t magic = 0;
+  return (nvs_get_u8(storage_, KEY_MAGIC, &magic) == ESP_OK && magic == MAGIC);
 }
 
 bool Drone::SaveCalibration()
@@ -50,8 +87,9 @@ bool Drone::SaveCalibration()
   data_.gy = calibration_.gyroscope.y();
   data_.gz = calibration_.gyroscope.z();
 
-  EEPROM.put(ADDR_DATA, data_);
-  EEPROM.write(ADDR_MAGIC, MAGIC);
+  ESP_ERROR_CHECK(nvs_set_blob(storage_, KEY_DATA, &data_, sizeof(data_)));
+  ESP_ERROR_CHECK(nvs_set_u8(storage_, KEY_MAGIC, MAGIC));
+  ESP_ERROR_CHECK(nvs_commit(storage_));
   Logger::Log(LoggerTag::Calibration, "Calibration saved!");
   return true;
 }
@@ -63,7 +101,11 @@ bool Drone::LoadCalibration()
     return false;
   }
 
-  EEPROM.get(ADDR_DATA, data_);
+  size_t size = sizeof(data_);
+  if (nvs_get_blob(storage_, KEY_DATA, &data_, &size) != ESP_OK || size != sizeof(data_))
+  {
+    return false;
+  }
 
   calibration_.accelerometer.x(data_.ax);
   calibration_.accelerometer.y(data_.ay);
@@ -112,10 +154,16 @@ void Drone::SetMotorsVelocity(const int dx, const int dy)
   }
 }
 
+void Drone::StopMotors()
+{
+  motorAlpha_.Stop();
+  motorBeta_.Stop();
+}
+
 Vector3 Drone::TryCalibrateAcc()
 {
-  Logger::Log(LoggerTag::Calibration, "Acceleroemeter... Do not move!");
-  Vector3 offset = Average(MPU_ADDR, ACC_ADDR);
+  Logger::Log(LoggerTag::Calibration, "Accelerometer... Do not move!");
+  Vector3 offset = Average(imu_, ACC_ADDR);
   Logger::Log(LoggerTag::Calibration, "Offset: ", offset);
   return offset;
 }
@@ -123,7 +171,7 @@ Vector3 Drone::TryCalibrateAcc()
 Vector3 Drone::TryCalibrateGyr()
 {
   Logger::Log(LoggerTag::Calibration, "Gyroscope... Do not move!");
-  Vector3 offset = Average(MPU_ADDR, GYR_ADDR);
+  Vector3 offset = Average(imu_, GYR_ADDR);
   Logger::Log(LoggerTag::Calibration, "Offset: ", offset);
   return offset;
 }

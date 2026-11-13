@@ -1,8 +1,9 @@
 #pragma once
-#include "subscription.hpp"
+#include "subscription.h"
 
-#include <vector>
 #include <functional>
+#include <iterator>
+#include <vector>
 
 template <typename T>
 class Observable
@@ -10,44 +11,44 @@ class Observable
 public:
   using Callback = std::function<void(const T &)>;
 
-  Observable() : _value{} {}
-  explicit Observable(T initial_value) : _value(initial_value) {}
+  Observable() : value_{} {}
+  explicit Observable(T initial_value) : value_(initial_value) {}
 
-  Subscription subscribe(Callback callback)
+  Subscription Subscribe(Callback callback)
   {
-    _callbacks.push_back(callback);
-    auto it = std::prev(_callbacks.end());
+    callbacks_.push_back(callback);
+    auto it = std::prev(callbacks_.end());
 
     return Subscription([this, it]()
-                        { _callbacks.erase(it); });
+                        { callbacks_.erase(it); });
   }
 
-  void set(const T &new_value)
+  void Set(const T &new_value)
   {
-    if (_value != new_value)
+    if (value_ != new_value)
     {
-      _value = new_value;
-      notify();
+      value_ = new_value;
+      Notify();
     }
   }
 
-  T get() const { return _value; }
+  T Get() const { return value_; }
 
   Observable &operator=(const T &new_value)
   {
-    set(new_value);
+    Set(new_value);
     return *this;
   }
 
 private:
-  T _value;
-  std::vector<Callback> _callbacks;
+  T value_;
+  std::vector<Callback> callbacks_;
 
-  void notify()
+  void Notify()
   {
-    for (auto &cb : _callbacks)
+    for (auto &cb : callbacks_)
     {
-      cb(_value);
+      cb(value_);
     }
   }
 };
